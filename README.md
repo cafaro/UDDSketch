@@ -17,7 +17,7 @@ Run the script `build.sh`. If everything goes fine, a sub-directory named 'insta
 # References
 \[1\] **Charles Masson, Jee E. Rim and Homin K. Lee**. *DDSketch: a fast and fully-mergeable quantile sketch with relative-error guarantees*. Proceedings of the VLDB Endowment 12.12 (2019): 2195-2205.
 
-\[2\] **Italo Epicoco, Catiuscia Melle, Massimo Cafaro, Marco Pulimeno, Giuseppe Morleo.** *UDDSketch: Accurate Tracking of Quantiles in Data Streams.*
+\[2\] **I. Epicoco, C. Melle, M. Cafaro, M. Pulimeno and G. Morleo**. UDDSketch: Accurate Tracking of Quantiles in Data Streams. IEEE Access, vol. 8, pp. 147604-147617, 2020, ISSN: 2169-3536, DOI: 10.1109/ACCESS.2020.3015599
 
 
 [1]: <http://www.vldb.org/pvldb/vol12/p2195-masson.pdf> "DDSketch: A Fast and fully-Mergeable Quantile Sketch with Relative-Error Guarantees"
