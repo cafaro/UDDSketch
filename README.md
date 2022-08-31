@@ -14,6 +14,10 @@ You need CMake 3.15 or higher and build tools installed.
 
 Run the script `build.sh`. If everything goes fine, a sub-directory named 'install' will be created with all of the binaries.
 
+If you use this software, please cite the following paper:
+
+I. Epicoco, C. Melle, M. Cafaro, M. Pulimeno and G. Morleo. UDDSketch: Accurate Tracking of Quantiles in Data Streams. IEEE Access, vol. 8, pp. 147604-147617, 2020, ISSN: 2169-3536, DOI: 10.1109/ACCESS.2020.3015599
+
 # References
 \[1\] **Charles Masson, Jee E. Rim and Homin K. Lee**. *DDSketch: a fast and fully-mergeable quantile sketch with relative-error guarantees*. Proceedings of the VLDB Endowment 12.12 (2019): 2195-2205.
 
