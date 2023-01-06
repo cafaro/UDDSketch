@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2019 Marco Pulimeno, University of Salento
  * All rights reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -10,7 +10,7 @@
  * provided that the above copyright notice(s) and this permission notice
  * appear in all copies of the Software and that both the above copyright
  * notice(s) and this permission notice appear in supporting documentation.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF THIRD PARTY RIGHTS.
@@ -19,7 +19,7 @@
  * ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
  * IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
  * OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- * 
+ *
  * Except as contained in this notice, the name of a copyright holder shall not
  * be used in advertising or otherwise to promote the sale, use or other
  * dealings in this Software without prior written authorization of the
@@ -54,11 +54,13 @@ static long *new_count(long count) {
 }
 
 static void add_item (dict *dict, int bid, long count) {
-    dict_insert_result result = dict_insert(dict, new_bid(bid));
+    int *bid_ptr = new_bid(bid);
+    dict_insert_result result = dict_insert(dict, bid_ptr);
     if (result.inserted) {
         *result.datum_ptr = new_count(count);
     } else {
         **(long**)result.datum_ptr += count;
+        free(bid_ptr);
     }
 }
 
@@ -82,7 +84,17 @@ static void collapse_impl (struct dds_mapstore *store) {
             long **second_datum_ptr = dict_itor_datum(itor);
             long new_count = **(long**)first_datum_ptr + **(long**)second_datum_ptr;
             **(long**)second_datum_ptr = new_count;
-            dict_remove(store->buckets, first_key_ptr);
+            dict_remove_result result = dict_remove(store->buckets, first_key_ptr);
+
+            if (result.key) {
+                free(result.key);
+                result.key = NULL;
+            }
+
+            if (result.datum) {
+                free(result.datum);
+                result.datum = NULL;
+            }
         }
             break;
         case COLLAPSINGHIGH_MAPSTORE: {
@@ -96,7 +108,16 @@ static void collapse_impl (struct dds_mapstore *store) {
 
             long new_count = **(long**)second_last_datum_ptr + **(long**)last_datum_ptr;
             **(long**)second_last_datum_ptr = new_count;
-            dict_remove(store->buckets, last_key_ptr);
+            dict_remove_result result = dict_remove(store->buckets, last_key_ptr);
+            if (result.key) {
+                    free(result.key);
+                    result.key = NULL;
+                }
+
+            if (result.datum) {
+                free(result.datum);
+                result.datum = NULL;
+            }
         }
             break;
         case COLLAPSINGALL_MAPSTORE: {
@@ -379,7 +400,9 @@ struct dds_mapstore* dds_mapstore_init(enum store_type store_type, bool resizabl
 }
 
 struct dds_mapstore* dds_mapstore_default_init(struct dds_bucket_id_mapping *id_map) {
-    dds_mapstore_init(UNBOUNDED_MAPSTORE, false, 0, id_map);
+    struct dds_mapstore *result;
+    result = dds_mapstore_init(UNBOUNDED_MAPSTORE, false, 0, id_map);
+    return result;
 }
 
 

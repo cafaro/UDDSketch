@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2019 Marco Pulimeno, University of Salento
  * All rights reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -10,7 +10,7 @@
  * provided that the above copyright notice(s) and this permission notice
  * appear in all copies of the Software and that both the above copyright
  * notice(s) and this permission notice appear in supporting documentation.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF THIRD PARTY RIGHTS.
@@ -19,7 +19,7 @@
  * ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
  * IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
  * OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- * 
+ *
  * Except as contained in this notice, the name of a copyright holder shall not
  * be used in advertising or otherwise to promote the sale, use or other
  * dealings in this Software without prior written authorization of the
@@ -36,8 +36,7 @@
 #include "dds_sketch.h"
 #include "textcolor_macros.h"
 
-#define DOUBLE_SKETCH 4
-#define UNIFORM_WITH_INITIAL_ALPHA 5
+#define UNIFORM_WITH_INITIAL_ALPHA 4
 #define BACKWARD_COLLAPSES 11
 
 char *store_type_to_str(enum store_type stype){
@@ -50,8 +49,6 @@ char *store_type_to_str(enum store_type stype){
             return "LOW COLLAPSING MAPSTORE";
         case COLLAPSINGALL_MAPSTORE:
             return "UNIFORM COLLAPSING MAPSTORE";
-        case DOUBLE_SKETCH:
-            return "DOUBLE SKETCH";
         case UNIFORM_WITH_INITIAL_ALPHA:
             return "UNIFORM COLLAPSING WITH INITIAL ALPHA";
         default:
@@ -140,14 +137,13 @@ int main(int argc, char *argv[]) {
                 break;
             case 's':
                 store_type = strtol(optarg, NULL, 10);
-                if (store_type < 0 || store_type > 5) {
+                if (store_type < 0 || store_type > 4) {
                     fprintf(stderr, "Option -s argument can be:\n"
-                                    " 0: unbounded map store\n"
-                                    " 1: collapsing towards high bucket IDs map store\n"
-                                    " 2: collapsing towards low bucket IDs map store\n"
-                                    " 3: collapsing all buckets IDs map store\n"
-                                    " 4: two sketches: one collapsing high buckets + one collapsing low buckets\n"
-                                    " 5: collapsing all buckets IDs map store and initial alpha setting\n");
+                                    " 0: unbounded map store (no collapses, implements DDSketch)\n"
+                                    " 1: collapsing last two buckets map store (note: the last two buckets are not necessarily adjacent, implements DDSketch)\n"
+                                    " 2: collapsing first two buckets map store (note: the first two buckets are not necessarily adjacent, implements DDSketch\n"
+                                    " 3: uniform collapse map store (implements UDDSketch)\n"
+                                    " 4: uniform collapse map store with initial alpha setting (implements UDDSketch)\n");
                     exit(1);
                 }
                 break;
@@ -199,6 +195,7 @@ int main(int argc, char *argv[]) {
     fread(istream, sizeof(double), slength, ifile);
     fclose(ifile);
 
+
     if (!csv_output) {
         fprintf(stdout, FG_LIGHTYELLOW("\nDDSketch launched with the following parameters:\n"));
         fprintf(stdout, FG_LIGHTGREEN("- input filename = %s\n"), input_filename);
@@ -219,51 +216,25 @@ int main(int argc, char *argv[]) {
         store_type = COLLAPSINGALL_MAPSTORE;
         alpha = tanh(atanh(alpha)/pow(2.0,BACKWARD_COLLAPSES-1));
     }
-    if (store_type == DOUBLE_SKETCH) {
-        if (neg_items) {
-            sketch_low = (struct dds_sketch*)dds_gsketch_init(COLLAPSINGLOW_MAPSTORE,
-                                                              alpha,
-                                                              0.0,
-                                                              sketch_size_bound);
-            sketch_high = (struct dds_sketch*)dds_gsketch_init(COLLAPSINGHIGH_MAPSTORE,
-                                                               alpha,
-                                                               0.0,
-                                                               sketch_size_bound);
-        } else {
-            sketch_low = (struct dds_sketch*)dds_psketch_init(COLLAPSINGLOW_MAPSTORE,
-                                                              alpha,
-                                                              0.0,
-                                                              sketch_size_bound);
-            sketch_high = (struct dds_sketch*)dds_psketch_init(COLLAPSINGHIGH_MAPSTORE,
-                                                               alpha,
-                                                               0.0,
-                                                               sketch_size_bound);
-        }
+    if (neg_items) {
+        sketch = (struct dds_sketch *) dds_gsketch_init(store_type,
+                                                        alpha,
+                                                        0.0,
+                                                        sketch_size_bound);
     } else {
-        if (neg_items) {
-            sketch = (struct dds_sketch *) dds_gsketch_init(store_type,
-                                                            alpha,
-                                                            0.0,
-                                                            sketch_size_bound);
-        } else {
-            sketch = (struct dds_sketch *) dds_psketch_init(store_type,
-                                                            alpha,
-                                                            0.0,
-                                                            sketch_size_bound);
-        }
+        sketch = (struct dds_sketch *) dds_psketch_init(store_type,
+                                                        alpha,
+                                                        0.0,
+                                                        sketch_size_bound);
     }
 
+
     clock_t begin_time = clock();
-    if (store_type == DOUBLE_SKETCH) {
-        for (long i = 0; i < slength; i++) {
-            dds_sketch_update(sketch_low, istream[i], 1);
-            dds_sketch_update(sketch_high, istream[i], 1);
-        }
-    } else {
-        for (long i = 0; i < slength; i++) {
-            dds_sketch_update(sketch, istream[i], 1);
-        }
+
+    for (long i = 0; i < slength; i++) {
+        dds_sketch_update(sketch, istream[i], 1);
     }
+
     clock_t end_time = clock();
     double time_spent = 1000 * (double)(end_time - begin_time) / CLOCKS_PER_SEC;
     double updates_per_ms = (double) slength / time_spent;
@@ -274,59 +245,16 @@ int main(int argc, char *argv[]) {
     double exact_quantiles[101];
     bool is_accurate = true;
     time_spent = 0.0;
-    if (store_type == DOUBLE_SKETCH) {
-        for (int p = 0; p <= 100; p++) {
-            double q = (double) p / 100.0;
-            bool is_accurate_l;
-            bool is_accurate_h;
-
-            begin_time = clock();
-            double quantile_value_l = dds_sketch_get_quantile(sketch_low, q, &is_accurate_l);
-            double quantile_value_h = dds_sketch_get_quantile(sketch_high, q, &is_accurate_h);
-            if (is_accurate_l) {
-                sketch_quantiles[p] = quantile_value_l;
-            } else if (is_accurate_h) {
-                sketch_quantiles[p] = quantile_value_h;
-            } else {
-                if (dds_sketch_get_num_collapses(sketch_low) < dds_sketch_get_num_collapses(sketch_high)) {
-                    sketch_quantiles[p] = quantile_value_l;
-                } else {
-                    sketch_quantiles[p] = quantile_value_h;
-                }
-            }
-            end_time = clock();
-
-
-            time_spent += 1000 * (double) (end_time - begin_time) / CLOCKS_PER_SEC;
-            long r = q * (slength - 1);
-            exact_quantiles[p] = istream[r];
-        }
-    } else {
-        for (int p = 0; p <= 100; p++) {
-            double q = (double) p / 100.0;
-            begin_time = clock();
-            sketch_quantiles[p] = dds_sketch_get_quantile(sketch, q, &is_accurate);
-            end_time = clock();
-            time_spent += 1000 * (double) (end_time - begin_time) / CLOCKS_PER_SEC;
-            long r = q * (slength - 1);
-            exact_quantiles[p] = istream[r];
-        }
+    for (int p = 0; p <= 100; p++) {
+        double q = (double) p / 100.0;
+        begin_time = clock();
+        sketch_quantiles[p] = dds_sketch_get_quantile(sketch, q, &is_accurate);
+        end_time = clock();
+        time_spent += 1000 * (double) (end_time - begin_time) / CLOCKS_PER_SEC;
+        long r = q * (slength - 1);
+        exact_quantiles[p] = istream[r];
     }
 
-    if (store_type == DOUBLE_SKETCH) {
-        if (dds_sketch_get_num_collapses(sketch_low) > dds_sketch_get_num_collapses(sketch_high)) {
-            sketch = sketch_low;
-        } else {
-            sketch = sketch_high;
-        }
-    }
-
-    int num_buckets = 0;
-    if (store_type == DOUBLE_SKETCH) {
-        num_buckets = dds_sketch_get_size(sketch_low) + dds_sketch_get_size(sketch_high);
-    } else {
-        num_buckets = dds_sketch_get_size(sketch);
-    }
 
     double query_time = (double) time_spent / 100.0;
     if (!csv_output) {
@@ -335,7 +263,7 @@ int main(int argc, char *argv[]) {
         printf(FG_LIGHTYELLOW("\nInitial alpha = %.10f\n"), alpha);
         printf(FG_LIGHTYELLOW("\nFinal alpha = %.10f\n"), dds_sketch_get_id_mapping(sketch)->alpha);
         printf(FG_LIGHTYELLOW("Number of collapses = %d\n"), dds_sketch_get_num_collapses(sketch));
-        printf(FG_LIGHTYELLOW("Number of buckets = %d\n"), num_buckets);
+        printf(FG_LIGHTYELLOW("Number of buckets at the end of execution = %d\n"), dds_sketch_get_size(sketch));
         printf(FG_LIGHTYELLOW("Sketch update performance = %.2f/ms\n"), updates_per_ms);
         printf(FG_LIGHTYELLOW("Quantile query mean time = %.4fms\n"), query_time);
     }
@@ -348,8 +276,8 @@ int main(int argc, char *argv[]) {
                 slength,
                 neg_items,
                 store_type,
-                store_type == DOUBLE_SKETCH? sketch_size_bound*2 : sketch_size_bound,
-                num_buckets,
+                sketch_size_bound,
+                dds_sketch_get_size(sketch),
                 user_alpha,
                 alpha,
                 dds_sketch_get_id_mapping(sketch)->alpha,
@@ -359,6 +287,7 @@ int main(int argc, char *argv[]) {
 
         printf("%f,%f\n", updates_per_ms, query_time);
     }
+
     if (neg_items) dds_gsketch_destroy(sketch);
     else dds_psketch_destroy(sketch);
     free(istream);
