@@ -235,6 +235,13 @@ int main(int argc, char *argv[]) {
         dds_sketch_update(sketch, istream[i], 1);
     }
 
+    for (long i = 0; i < slength; i++) {
+      dds_sketch_update(sketch, istream[i], -1);
+    }
+    for (long i = 0; i < slength; i++) {
+      dds_sketch_update(sketch, istream[i], 1);
+    }
+
     clock_t end_time = clock();
     double time_spent = 1000 * (double)(end_time - begin_time) / CLOCKS_PER_SEC;
     double updates_per_ms = (double) slength / time_spent;

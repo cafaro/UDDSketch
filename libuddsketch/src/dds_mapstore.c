@@ -259,7 +259,17 @@ static void base_remove_impl(struct dds_mapstore *store, int bid, long count) {
     }
     *value_ptr = *value_ptr - count;
     if (*value_ptr == 0) {
-        dict_remove(store->buckets, &bid);
+        dict_remove_result result = dict_remove(store->buckets, &bid);
+            if (result.key) {
+                    free(result.key);
+                    result.key = NULL;
+                }
+
+            if (result.datum) {
+                free(result.datum);
+                result.datum = NULL;
+            }
+        
     }
     dict_itor_free(itor);
     store->total_counts -= count;

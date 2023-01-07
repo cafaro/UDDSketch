@@ -17,7 +17,8 @@ Run the script `build.sh`. At the end, a sub-directory named 'install' will be c
 
 # Version history
 
-- v1.1 current version: fixed some memory leaks
+- v1.2 current version: fixed some additional memory leaks arising when removing items
+- v1.1 fixed some memory leaks
 - v1.0 initial release
 
 
