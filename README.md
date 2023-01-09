@@ -17,6 +17,7 @@ Run the script `build.sh`. At the end, a sub-directory named 'install' will be c
 
 # Version history
 
+- v1.3 fixed a bug related to an incorrect handling of zero values in some cases
 - v1.2.1 current version: fixed a regression issue introduced in v1.2
 - v1.2 fixed some additional memory leaks arising when removing items
 - v1.1 fixed some memory leaks
@@ -55,6 +56,12 @@ In particular:
 
 - the parameter -n is required ONLY if the input includes negative values;
 - the parameter -o is required ONLY if the output is desired in csv format.
+
+### Notes
+- Although this implementation of UDDSketch can handle element removals, the test code in uddsketch-test does not deal with this case.
+  If your code also remove items, remember that you need to compute exact quantiles on the final stream resulting from insertions and deletions, not on the initial input!
+  Otherwise, when you compare exact versus approximate quantiles output from UDDSketch, the results will not be correct.
+- This implementation may not work with alpha values that are too small (less than 10^-6).
 
 # References
 \[1\] **Charles Masson, Jee E. Rim and Homin K. Lee**. *DDSketch: a fast and fully-mergeable quantile sketch with relative-error guarantees*. Proceedings of the VLDB Endowment 12.12 (2019): 2195-2205.

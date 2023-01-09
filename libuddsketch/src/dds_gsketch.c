@@ -46,8 +46,8 @@ static void base_update_impl(struct dds_gsketch *gsketch, double value, long cou
         if (absvalue < gsketch->min_addressable_absvalue) {
             if (count > 0) {
                 gsketch->zero_bucket += count;
-            } else if (count < 0 && gsketch->zero_bucket >= count) {
-                gsketch->zero_bucket -= count;
+            } else if (count < 0 && (gsketch->zero_bucket + count) >= 0) {
+                gsketch->zero_bucket += count;
             }
         } else {
             int bid = dds_get_bucket_id(gsketch->id_map, absvalue);

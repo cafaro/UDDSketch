@@ -38,8 +38,8 @@ static void base_update_impl(struct dds_psketch *sketch, double value, long coun
         if (value < sketch->min_addressable_value) {
             if (count > 0) {
                 sketch->zero_bucket += count;
-            } else if (count < 0 && sketch->zero_bucket >= count) {
-                sketch->zero_bucket -= count;
+            } else if (count < 0 && (sketch->zero_bucket + count) >= 0) {
+                sketch->zero_bucket += count;
             }
         } else {
             int bid = dds_get_bucket_id(sketch->id_map, value);
@@ -109,6 +109,7 @@ static double base_get_quantile_impl(struct dds_psketch* sketch, double quantile
     *is_accurate = true;
 
     long rank = floor(quantile * (dds_sketch_get_total_count(sketch) - 1));
+    //fprintf(stderr, "rank: %d, tc: %d, sc: %d\n", rank, dds_sketch_get_total_count(sketch), dds_store_get_total_counts(sketch->store));
     if (rank < sketch->zero_bucket) {
         return 0;
     }
@@ -117,21 +118,24 @@ static double base_get_quantile_impl(struct dds_psketch* sketch, double quantile
     int first_bid = dds_store_get_min_bid(sketch->store);
     long counts = 0;
     int bid;
-    if (quantile <= 0.5) {
+    // if (quantile <= 0.5) {
         bid = first_bid;
         counts = sketch->zero_bucket + dds_store_get_bucket_count(sketch->store, first_bid);
         while (counts <= rank && bid < last_bid) {
             bid = dds_store_get_next_bid(sketch->store, bid);
             counts += dds_store_get_bucket_count(sketch->store, bid);
         }
-    } else {
-        bid = last_bid;
-        counts = dds_store_get_total_counts(sketch->store) - dds_store_get_bucket_count(sketch->store, last_bid);
-        while (counts > rank && bid > first_bid) {
-            bid = dds_store_get_prev_bid(sketch->store, bid);
-            counts -= dds_store_get_bucket_count(sketch->store, bid);
-        }
-    }
+    // } 
+    // else {
+    //      bid = last_bid;
+    //      counts = dds_store_get_total_counts(sketch->store) - dds_store_get_bucket_count(sketch->store, last_bid);
+    //      while (counts > rank && bid > first_bid) {
+    //          bid = dds_store_get_prev_bid(sketch->store, bid);
+    //          counts -= dds_store_get_bucket_count(sketch->store, bid);
+    //     }
+    //     bid = dds_store_get_next_bid(sketch->store, bid);
+    // }
+
     if (dds_sketch_get_num_collapses(sketch) > 0) {
         if ((sketch->store_type == COLLAPSINGLOW_MAPSTORE && bid == first_bid) ||
             (sketch->store_type == COLLAPSINGHIGH_MAPSTORE && bid == last_bid)) {
