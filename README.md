@@ -17,11 +17,11 @@ Run the script `build.sh`. At the end, a sub-directory named 'install' will be c
 
 # Version history
 
-- v1.3 fixed a bug related to an incorrect handling of zero values in some cases
-- v1.2.1 current version: fixed a regression issue introduced in v1.2
-- v1.2 fixed some additional memory leaks arising when removing items
-- v1.1 fixed some memory leaks
-- v1.0 initial release
+- v1.3   fixed a bug related to an incorrect handling of zero values in some cases
+- v1.2.1 fixed a regression issue introduced in v1.2
+- v1.2   fixed some additional memory leaks arising when removing items
+- v1.1   fixed some memory leaks
+- v1.0   initial release
 
 
 # Usage
