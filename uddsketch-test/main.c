@@ -181,22 +181,20 @@ int main(int argc, char *argv[]) {
 
     user_alpha = alpha;
 
-    // FILE *ifile = fopen(input_filename, "rb");
-    // if (!ifile) {
-    //     fprintf(stderr, FG_LIGHTRED("Input file name mispelled or file does not exist\n"));
-    //     exit(EXIT_FAILURE);
-    // }
+    FILE *ifile = fopen(input_filename, "rb");
+    if (!ifile) {
+    	fprintf(stderr, FG_LIGHTRED("Input file name mispelled or file does not exist\n"));
+    	exit(EXIT_FAILURE);
+    }
 
-    // fseek(ifile, 0, SEEK_END);
-    // long fdim = ftell(ifile);
-    // rewind(ifile);
-    // long slength = fdim / sizeof(double);
-    // double *istream = (double*)malloc(sizeof(double)*slength);
-    // fread(istream, sizeof(double), slength, ifile);
-    // fclose(ifile);
+    fseek(ifile, 0, SEEK_END);
+    long fdim = ftell(ifile);
+    rewind(ifile);
+    long slength = fdim / sizeof(double);
+    double *istream = (double*)malloc(sizeof(double)*slength);
+    fread(istream, sizeof(double), slength, ifile);
+    fclose(ifile);
 
-    double istream[] = {0, -4, -8, -18, -28, 45, 72, 91, 112, 144, 170, 209, 264, 299, 322, 375, 448, 493, 612, 703};
-    int slength = sizeof(istream)/sizeof(double);
 
     if (!csv_output) {
         fprintf(stdout, FG_LIGHTYELLOW("\nDDSketch launched with the following parameters:\n"));
@@ -293,6 +291,6 @@ int main(int argc, char *argv[]) {
 
     if (neg_items) dds_gsketch_destroy(sketch);
     else dds_psketch_destroy(sketch);
-    //free(istream);
+    free(istream);
     return 0;
 }
